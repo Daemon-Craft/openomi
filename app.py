@@ -27,28 +27,23 @@ uploaded_files = st.file_uploader(
     type=["pdf", "jpg", "png", "jpeg"]
 )
 
-# --- F-02: Analysis Trigger ---
 # This button will start the analysis process
 if st.button("Analyze my files for Red Flags 🚩"):
     if uploaded_files:
         # Check if files were actually uploaded
-        
-        # 1. Set the API Gateway endpoint URL (we will fill this in later in Epic 3)
-        # API_ENDPOINT_URL = "YOUR_API_GATEWAY_URL_HERE" 
+    
 
         st.info(f"Processing {len(uploaded_files)} document(s)... This may take a moment.")
         
         # 2. Show a spinner during processing to improve user experience
         with st.spinner("Running extraction (LandingAI) and reasoning (Bedrock)..."):
             try:
-                # --- MOCKUP FOR F-06 (To be replaced in Epic 4) ---
-                
                 # This simulates the network and processing time of Lambda,
                 # LandingAI, and Bedrock.
                 time.sleep(5) 
                 
                 # This is a mock Markdown report. 
-                # Our Bedrock Agent will generate this for real in Epic 3.
+                # Our Bedrock Agent will generate this for real
                 mock_report = """
                 ## 📊 Openomi Audit Report
                 
