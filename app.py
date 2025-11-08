@@ -1,6 +1,8 @@
+from unittest import result
 import streamlit as st
-import requests
 import time
+from dotenv import load_dotenv
+from lambda_test_extraction import run_extraction_on_file
 
 
 # --- Page Configuration (Must be the first st command) ---
@@ -41,40 +43,22 @@ if st.button("Analyze my files for Red Flags 🚩"):
                 # This simulates the network and processing time of Lambda,
                 # LandingAI, and Bedrock.
                 time.sleep(5) 
-                
-                # This is a mock Markdown report. 
-                # Our Bedrock Agent will generate this for real
-                mock_report = """
-                ## 📊 Openomi Audit Report
-                
-                **Decision Level: <font color='orange'>Medium Risk</font>**
-                
-                ---
-                
-                ### Summary
-                * **Total Calculated Funds:** $15,100.00 CAD
-                * **Required Threshold:** $14,690.00 CAD
-                * **Status:** <font color='green'>Threshold Met</font>
-                
-                ---
-                
-                ### 🚩 Red Flags Identified
-                
-                1.  **Suspicious Deposit:**
-                    * **Finding:** A large cash deposit of **$8,000.00** was detected on 2025-10-15 in `statement_month_5.pdf`.
-                    * **Rule (IRCC KB):** "Large, unexplainable deposits or gifts received shortly before application may cast doubt on the applicant's financial integrity."
-                    * **Recommendation:** Provide a notarized gift deed or a letter of explanation for the source of this deposit.
-                
-                2.  **Missing Document:**
-                    * **Finding:** Analysis detected a gap. Bank statements for **August 2025** appear to be missing.
-                    * **Recommendation:** Ensure all 6 consecutive months of statements are provided.
-                """
-                
-                # --- Display the Final Report ---
+
                 st.divider()
-                st.subheader("Your Audit Report is Ready:")
-                # We use unsafe_allow_html=True to render the color tags
-                st.markdown(mock_report, unsafe_allow_html=True)
+                st.subheader("Analysis Results Local test:")
+
+                for i, uploaded_file in enumerate(uploaded_files):
+                    st.markdown(f"### Document {i+1}: {uploaded_file.name}")
+                    # Call the extraction function for each uploaded file
+                    files_bytes = uploaded_file.read()  
+                    extraction_result = run_extraction_on_file(files_bytes)
+
+                    if "error" in extraction_result:
+                        st.error(f"Error processing {uploaded_file.name}: {extraction_result['error']}")
+                    else:
+                        st.success(f"Successfully processed {uploaded_file.name}")
+                        st.markdown("**Extracted Content:**")
+                        st.markdown(extraction_result["markdown"])
 
             except Exception as e:
                 # Catch any potential errors during the API call

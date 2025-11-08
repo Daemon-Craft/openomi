@@ -23,7 +23,6 @@ def lambda_handler(event, context):
     # Get configuration from environment variables
     try:
         LANDINGAI_ENDPOINT_ID = os.environ['LANDINGAI_ENDPOINT_ID']
-        LANDINGAI_API_KEY = os.environ['LANDINGAI_API_KEY']
         BUCKET_NAME = os.environ['S3_UPLOADS_BUCKET']
     except KeyError as e:
         print(f"Environment variable {e} not set.")
@@ -32,44 +31,85 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': f'Missing environment variable: {e}'})
         }
     
-    TEST_FILE_PATH = "test_documents/statement_month_1.pdf"
+    TEST_FILE_PATH = "statement_month_1.pdf"
     print(f"Starting processing for file: s3://{BUCKET_NAME}/{TEST_FILE_PATH}")
 
-    # Read the test file from S3
+    
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        try:
+            local_file_path = os.path.join(tmpdirname, TEST_FILE_PATH)
+            s3_client.download_file(BUCKET_NAME, TEST_FILE_PATH, local_file_path)
+            print(f"Successfully downloaded file to temporary path: {local_file_path}")
+
+            # Process the file with LandingAI
+            print("Processing file with LandingAI...")
+            #initialize landingai ade client
+            ade = LandingAIADE()
+            #parse the document
+            response = ade.parse(
+                document_url=local_file_path, 
+                model="dpt-2-latest"
+            )
+
+            if not response.markdown:
+                print("No markdown content returned from LandingAI.")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': 'LandingAI returned no content'})
+                }
+
+            # Process the markdown content
+            print("Processing markdown content...")
+            # Here you can add your logic to process the markdown content
+            for block in response.markdown:
+                print(block)
+            
+        except Exception as e:
+            print(f"Error downloading file: {e}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f'Failed to download file: {e}'})
+            }
 
 
-    # Parse the incoming event to extract file information
-    body = json.loads(event['body'])
-    files_info = body.get('files', [])
-    
-    results = []
-    
-    for file_info in files_info:
-        file_name = file_info['file_name']
-        s3_bucket = file_info['s3_bucket']
-        s3_key = file_info['s3_key']
+
+
+def run_extraction_on_file(file_bytes: bytes):
+    temp_file_path = None
+    try:
+        # Create temporary file and write data
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            temp_file.write(file_bytes)
+            temp_file.flush() # Ensure all data is written to disk
+            temp_file_path = temp_file.name
         
-        # Download the file from S3 to a temporary location
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            s3_client.download_fileobj(s3_bucket, s3_key, tmp_file)
-            tmp_file_path = tmp_file.name
+        print(f"Temporary file created at: {temp_file_path}")
         
-        # Simulate processing the file (e.g., extracting text, analyzing content)
-        # Here we just read the file size as a placeholder for actual processing
-        file_size = os.path.getsize(tmp_file_path)
+        # Process the file with LandingAI (after closing the file handle)
+        print("Processing file with LandingAI...")
+        #initialize landingai ade client
+        ade = LandingAIADE()
+        #parse the document
+        response = ade.parse(
+            document_url=temp_file_path,
+            model="dpt-2-latest"
+        )
+
+        if not response.markdown:
+            print("No markdown content returned from LandingAI.")
+            return {'error': 'LandingAI returned no content'}
+
+        # Process the markdown content
+        print("Extraction completed successfully")
         
-        # Clean up the temporary file
-        os.remove(tmp_file_path)
+        return {"markdown": response.markdown}
         
-        # Append the result for this file
-        results.append({
-            'file_name': file_name,
-            'file_size': file_size,
-            'status': 'Processed'
-        })
-    
-    # Return the results as a JSON response
-    return {
-        'statusCode': 200,
-        'body': json.dumps({'results': results})
-    }
+    except Exception as e:
+        return {'error': f"Errorrr processing file: {e}"}
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception:
+                pass
