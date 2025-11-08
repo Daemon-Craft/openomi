@@ -19,7 +19,7 @@ st.markdown("""
 """)
 
 
-# --- F-01: File Uploader ---
+# --- File Uploader ---
 # This widget allows users to upload multiple files of specified types
 uploaded_files = st.file_uploader(
     "Upload your financial documents (6 months of bank statements, investment letters, etc.)",
@@ -70,7 +70,7 @@ if st.button("Analyze my files for Red Flags 🚩"):
                     * **Recommendation:** Ensure all 6 consecutive months of statements are provided.
                 """
                 
-                # --- F-06: Display the Final Report ---
+                # --- Display the Final Report ---
                 st.divider()
                 st.subheader("Your Audit Report is Ready:")
                 # We use unsafe_allow_html=True to render the color tags
@@ -84,7 +84,7 @@ if st.button("Analyze my files for Red Flags 🚩"):
         # If the user clicks the button without uploading files
         st.warning("Please upload at least one document before analyzing.")
 
-# --- Footer / Disclaimer ---
+# --- Footer ---
 st.markdown("---")
 st.caption("© 2025 Openomi (Hackathon MVP). This is a proof-of-concept and does not constitute legal or financial advice.")
 
