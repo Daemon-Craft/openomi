@@ -58,7 +58,7 @@ if st.button("Analyze my files for Red Flags 🚩"):
                     else:
                         st.success(f"Successfully processed {uploaded_file.name}")
                         st.markdown("**Extracted Content:**")
-                        st.markdown(extraction_result["markdown"])
+                        st.markdown(extraction_result)
 
             except Exception as e:
                 # Catch any potential errors during the API call

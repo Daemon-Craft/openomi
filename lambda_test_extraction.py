@@ -18,6 +18,28 @@ load_dotenv()
 
 s3_client = boto3.client('s3')
 
+class AccountTest(BaseModel):
+    account_number: str = Field(description="Account number")
+    account_holder: str = Field(description="Account holder")
+    balance: float = Field(description="Opening balance")
+    all_transactions: list = Field(description="All Transactions")
+
+class Transaction(BaseModel):
+    date: str = Field(description="The date of the transaction")
+    description: str = Field(description="The description of the transaction")
+    amount: float = Field(description="The value of the transaction (use negative for withdrawals)")
+
+class BankStatementSchema(BaseModel):
+    account_holder: str = Field(description="Full name of the account holder")
+    open_balance: float = Field(description="The opening balance at the start of the period")
+    ending_balance: float = Field(description="The final balance at the end of the period")
+    currency: str = Field(description="The currency of the balances (e.g., CAD, USD)")
+    
+    # Tell to the AI to find a LIST of Transactions
+    transactions: list[Transaction] = Field(description="A list of all transactions found in the statement")
+
+SCHEMA_JSON = pydantic_to_json_schema(BankStatementSchema)
+
 def lambda_handler(event, context):
 
     # Get configuration from environment variables
@@ -61,9 +83,11 @@ def lambda_handler(event, context):
             # Process the markdown content
             print("Processing markdown content...")
             # Here you can add your logic to process the markdown content
-            for block in response.markdown:
-                print(block)
-            
+            return {
+                'statusCode': 200,
+                'body': json.dumps({'markdown': response.markdown})
+            }
+
         except Exception as e:
             print(f"Error downloading file: {e}")
             return {
@@ -100,12 +124,26 @@ def run_extraction_on_file(file_bytes: bytes):
             return {'error': 'LandingAI returned no content'}
 
         # Process the markdown content
-        print("Extraction completed successfully")
+        print("Parsing completed successfully! Markdown generated.")
         
-        return {"markdown": response.markdown}
-        
+        # Now extract the json
+        print('Extracting JSON data...')
+        json_data = ade.extract(
+                schema=SCHEMA_JSON,
+                markdown=response.markdown,
+                model="extract-latest"
+            )
+
+        if not json_data.extraction:
+            print("No JSON data found.")
+            return {'error': 'No JSON data found'}
+
+        print("JSON data extracted successfully!")
+        print(json_data.extraction)
+        return json.dumps(json_data.extraction, indent=2)
+
     except Exception as e:
-        return {'error': f"Errorrr processing file: {e}"}
+        return {'error': f"Error processing file: {e}"}
     finally:
         # Clean up temporary file
         if temp_file_path and os.path.exists(temp_file_path):
