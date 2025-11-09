@@ -1,0 +1,33 @@
+# Ignore virtual environments
+act/
+e--container/
+venv/
+.venv/
+env/
+
+# Ignore development files
+app.py
+lambda_test_extraction.py
+.env
+.env.example
+.env.json
+env.json
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore build artifacts
+.aws-sam/
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore documentation
+README.md
+LICENSE
+
+# Ignore test files
+tests/
+test_*.py
+*_test.py

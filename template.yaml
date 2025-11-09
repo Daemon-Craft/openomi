@@ -14,27 +14,28 @@ Parameters:
     Description: LandingAI API Key for document extraction
 
 Resources:
-  # Lambda Layer containing required libraries
+  # Lambda Layer with minimal dependencies
   OpenomiDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: openomi-dependencies-layer
-      ContentUri: .
+      ContentUri: ./layer
       CompatibleRuntimes:
         - python3.11
+      CompatibleArchitectures:
+        - x86_64
     Metadata:
       BuildMethod: python3.11
-  
-  # Lambda Function "Tool" for Bedrock Agent
+
   OpenomiExtractionToolFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: openomi_logic.lambda_handler
       Runtime: python3.11
-      CodeUri: .
+      CodeUri: ./src
       Description: Bedrock Agent Tool to extract data from S3 files via LandingAI.
-      MemorySize: 512
-      Timeout: 90 # LandingAI processing can take time
+      MemorySize: 1024
+      Timeout: 120
       Architectures: [x86_64]
       Layers:
         - !Ref OpenomiDependenciesLayer
@@ -54,9 +55,9 @@ Resources:
       FunctionName: !GetAtt OpenomiExtractionToolFunction.Arn
       Action: lambda:InvokeFunction
       Principal: bedrock.amazonaws.com
-      SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/C5VID8OPVZ"
+      SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/NKQNAB50FC"
 
 Outputs:
   ExtractionToolLambdaArn:
-    Description: "ARN of the Extraction Tool Lambda to link to the Bedrock Agent"
+    Description: "ARN of the Extraction Tool Lambda"
     Value: !GetAtt OpenomiExtractionToolFunction.Arn
