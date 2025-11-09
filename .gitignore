@@ -1,1 +1,9 @@
 .env
+.__pycache__/
+*.pyc
+.aws-sam/build/
+.aws-sam/
+.aws
+.act/
+.env.json
+env.json
