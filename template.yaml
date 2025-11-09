@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09' # CloudFormation template version
+Transform: AWS::Serverless-2016-10-31 # Enables the AWS SAM transform
+Description: A simple AWS SAM templ ate for a Lambda function that returns a JSON response.
+Resources: # AWS resources definitions
+  OpenomiFunction: # Logical name of the Lambda function
+    Type: AWS::Serverless::Function # SAM resource type for a Lambda function
+    Properties: # Lambda function properties
+      Handler: app.lambda_handler # Function entry point (file.function)
+      Runtime: python3.11 # Runtime environment
+      CodeUri: . # Directory containing the source code
+      Description: A simple AWS Lambda function that returns a JSON response. # Function description
+      MemorySize: 128 # Memory size in MB
+      Timeout: 3 # Maximum execution time in seconds
+      Policies: # IAM policies attached to the function
+        - AWSLambdaBasicExecutionRole # Basic execution policy for Lambda (CloudWatch logs)
+        - AWSLambdaInvokeFunction # Policy to allow invoking other Lambda functions
+      Events: # Trigger definitions
+        OpenomiLogic: # Logical name of the event
+          Type: Api # API Gateway trigger
+          Properties: 
+            Path: /openomi # API path
+            Method: get # HTTP method
+Outputs: # CloudFormation stack outputs
+  OpenomiFunctionArn: # Logical name of the output
+    Description: "ARN of OpenomiFunction" # Output description
+    Value: !GetAtt OpenomiFunction.Arn # Output value (Lambda function ARN)
+  ApiUrl: # Logical name of the output
+    Description: "API Gateway endpoint URL" # Output description
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/openomi" # Output value (API endpoint URL)

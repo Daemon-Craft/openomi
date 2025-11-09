@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import uuid
 import boto3
 from dotenv import load_dotenv
 from pathlib import Path
@@ -17,6 +18,7 @@ load_dotenv()
 
 
 s3_client = boto3.client('s3')
+bedrock_agent_client = boto3.client('bedrock-agent-runtime', region_name='us-east-1')
 
 class AccountTest(BaseModel):
     account_number: str = Field(description="Account number")
@@ -41,10 +43,12 @@ class BankStatementSchema(BaseModel):
 SCHEMA_JSON = pydantic_to_json_schema(BankStatementSchema)
 
 def lambda_handler(event, context):
-
+    """
+    Lambda handler that downloads PDF files from S3 and processes them with LandingAI.
+    Performs both parsing (markdown extraction) and structured data extraction.
+    """
     # Get configuration from environment variables
     try:
-        LANDINGAI_ENDPOINT_ID = os.environ['LANDINGAI_ENDPOINT_ID']
         BUCKET_NAME = os.environ['S3_UPLOADS_BUCKET']
     except KeyError as e:
         print(f"Environment variable {e} not set.")
@@ -52,48 +56,81 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'error': f'Missing environment variable: {e}'})
         }
-    
-    TEST_FILE_PATH = "statement_month_1.pdf"
+
+    TEST_FILE_PATH = "statement-1.pdf"
     print(f"Starting processing for file: s3://{BUCKET_NAME}/{TEST_FILE_PATH}")
 
-    
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        try:
-            local_file_path = os.path.join(tmpdirname, TEST_FILE_PATH)
-            s3_client.download_file(BUCKET_NAME, TEST_FILE_PATH, local_file_path)
-            print(f"Successfully downloaded file to temporary path: {local_file_path}")
+    temp_file_path = None
+    try:
+        # Download file from S3 to temporary file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file_path = os.path.join(temp_dir, "statement-1.pdf")
+            print(f"Downloading file from S3: s3://{BUCKET_NAME}/{TEST_FILE_PATH}")
+            s3_client.download_file(BUCKET_NAME, TEST_FILE_PATH, temp_file_path)
 
-            # Process the file with LandingAI
-            print("Processing file with LandingAI...")
-            #initialize landingai ade client
-            ade = LandingAIADE()
-            #parse the document
-            response = ade.parse(
-                document_url=local_file_path, 
-                model="dpt-2-latest"
-            )
+        print(f"Successfully downloaded file to temporary path: {temp_file_path}")
 
-            if not response.markdown:
-                print("No markdown content returned from LandingAI.")
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({'error': 'LandingAI returned no content'})
-                }
+        # Initialize LandingAI ADE client
+        ade = LandingAIADE()
 
-            # Process the markdown content
-            print("Processing markdown content...")
-            # Here you can add your logic to process the markdown content
-            return {
-                'statusCode': 200,
-                'body': json.dumps({'markdown': response.markdown})
-            }
+        # Step 1: Parse the document to get markdown
+        print("Step 1: Parsing document with LandingAI...")
+        response = ade.parse(
+            document_url=temp_file_path,
+            model="dpt-2-latest"
+        )
 
-        except Exception as e:
-            print(f"Error downloading file: {e}")
+        if not response.markdown:
+            print("No markdown content returned from LandingAI.")
             return {
                 'statusCode': 500,
-                'body': json.dumps({'error': f'Failed to download file: {e}'})
+                'body': json.dumps({'error': 'LandingAI returned no markdown content'})
             }
+
+        print("Parsing completed successfully! Markdown generated.")
+
+        # Step 2: Extract structured JSON data from markdown
+        print("Step 2: Extracting structured JSON data...")
+        json_data = ade.extract(
+            schema=SCHEMA_JSON,
+            markdown=response.markdown,
+            model="extract-latest"
+        )
+
+        if not json_data.extraction:
+            print("No JSON data extracted.")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': 'No JSON data could be extracted'})
+            }
+
+        print("JSON data extracted successfully!")
+        print(json_data.extraction)
+
+        # Return the extracted data
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'File processed successfully',
+                'file': TEST_FILE_PATH,
+                'extraction': json_data.extraction
+            }, indent=2)
+        }
+
+    except Exception as e:
+        print(f"Error processing file: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': f'Failed to process file: {str(e)}'})
+        }
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+                print(f"Temporary file cleaned up: {temp_file_path}")
+            except Exception as cleanup_error:
+                print(f"Warning: Could not clean up temporary file: {cleanup_error}")
 
 
 
@@ -151,3 +188,47 @@ def run_extraction_on_file(file_bytes: bytes):
                 os.unlink(temp_file_path)
             except Exception:
                 pass
+
+
+
+
+def run_bedrock_reasoning(dossier_data: list[dict]) -> str:
+    """
+    Invoque l'Agent Bedrock avec la liste complète des JSON extraits.
+    Retourne le rapport en Markdown.
+    """
+    try:
+        AGENT_ID = os.environ['BEDROCK_AGENT_ID']
+        AGENT_ALIAS_ID = os.environ['BEDROCK_AGENT_ALIAS_ID']
+        SESSION_ID = str(uuid.uuid4())
+        
+        # Convertit la liste complète des données du dossier en une chaîne
+        input_text = json.dumps(dossier_data)
+        
+        print(f"Invoking Bedrock Agent (Session: {SESSION_ID}) with {len(dossier_data)} documents...")
+
+        response = bedrock_agent_client.invoke_agent(
+            agentId=AGENT_ID,
+            agentAliasId=AGENT_ALIAS_ID,
+            sessionId=SESSION_ID,
+            inputText=input_text
+        )
+
+        completion = ""
+        for event in response.get('completion', []): 
+            chunk = event.get('chunk', {})
+            if 'bytes' in chunk:
+                completion += chunk['bytes'].decode('utf-8')
+                print(completion, end='') # Print the current completion as it streams in to console
+
+        print("Bedrock reasoning complete.")
+        return completion
+
+    except KeyError as e:
+        error_msg = f"ERROR: Missing environment variable: {e}. Please set BEDROCK_AGENT_ID and BEDROCK_AGENT_ALIAS_ID."
+        print(error_msg)
+        return error_msg
+    except Exception as e:
+        error_msg = f"ERROR in run_bedrock_reasoning: {e}"
+        print(error_msg)
+        return error_msg

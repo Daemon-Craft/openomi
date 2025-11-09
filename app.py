@@ -3,6 +3,7 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 from lambda_test_extraction import run_extraction_on_file
+from lambda_test_extraction import lambda_handler
 
 
 # --- Page Configuration (Must be the first st command) ---
@@ -23,50 +24,56 @@ st.markdown("""
 
 # --- File Uploader ---
 # This widget allows users to upload multiple files of specified types
-uploaded_files = st.file_uploader(
-    "Upload your financial documents (6 months of bank statements, investment letters, etc.)",
-    accept_multiple_files=True,
-    type=["pdf", "jpg", "png", "jpeg"]
-)
+# """ uploaded_files = st.file_uploader(
+#     "Upload your financial documents (6 months of bank statements, investment letters, etc.)",
+#     accept_multiple_files=True,
+#     type=["pdf", "jpg", "png", "jpeg"]
+# )
+#  """
+if st.button("Analyze my files for Red Flags 🚩"):
+    #call lambda_handler to simulate processing
+    extraction_result = lambda_handler({}, {})
+    st.markdown("### Extraction Result:")
+    st.json(extraction_result)
 
 # This button will start the analysis process
-if st.button("Analyze my files for Red Flags 🚩"):
-    if uploaded_files:
-        # Check if files were actually uploaded
+# """ if st.button("Analyze my files for Red Flags 🚩"):
+#     if uploaded_files:
+#         # Check if files were actually uploaded
     
 
-        st.info(f"Processing {len(uploaded_files)} document(s)... This may take a moment.")
+#         st.info(f"Processing {len(uploaded_files)} document(s)... This may take a moment.")
         
-        # 2. Show a spinner during processing to improve user experience
-        with st.spinner("Running extraction (LandingAI) and reasoning (Bedrock)..."):
-            try:
-                # This simulates the network and processing time of Lambda,
-                # LandingAI, and Bedrock.
-                time.sleep(5) 
+#         # 2. Show a spinner during processing to improve user experience
+#         with st.spinner("Running extraction (LandingAI) and reasoning (Bedrock)..."):
+#             try:
+#                 # This simulates the network and processing time of Lambda,
+#                 # LandingAI, and Bedrock.
+#                 time.sleep(5) 
 
-                st.divider()
-                st.subheader("Analysis Results Local test:")
+#                 st.divider()
+#                 st.subheader("Analysis Results Local test:")
 
-                for i, uploaded_file in enumerate(uploaded_files):
-                    st.markdown(f"### Document {i+1}: {uploaded_file.name}")
-                    # Call the extraction function for each uploaded file
-                    files_bytes = uploaded_file.read()  
-                    extraction_result = run_extraction_on_file(files_bytes)
+#                 for i, uploaded_file in enumerate(uploaded_files):
+#                     st.markdown(f"### Document {i+1}: {uploaded_file.name}")
+#                     # Call the extraction function for each uploaded file
+#                     files_bytes = uploaded_file.read()  
+#                     extraction_result = run_extraction_on_file(files_bytes)
 
-                    if "error" in extraction_result:
-                        st.error(f"Error processing {uploaded_file.name}: {extraction_result['error']}")
-                    else:
-                        st.success(f"Successfully processed {uploaded_file.name}")
-                        st.markdown("**Extracted Content:**")
-                        st.markdown(extraction_result)
+#                     if "error" in extraction_result:
+#                         st.error(f"Error processing {uploaded_file.name}: {extraction_result['error']}")
+#                     else:
+#                         st.success(f"Successfully processed {uploaded_file.name}")
+#                         st.markdown("**Extracted Content:**")
+#                         st.markdown(extraction_result)
 
-            except Exception as e:
-                # Catch any potential errors during the API call
-                st.error(f"An error occurred during analysis: {e}")
+#             except Exception as e:
+#                 # Catch any potential errors during the API call
+#                 st.error(f"An error occurred during analysis: {e}")
 
-    else:
-        # If the user clicks the button without uploading files
-        st.warning("Please upload at least one document before analyzing.")
+#     else:
+#         # If the user clicks the button without uploading files
+#         st.warning("Please upload at least one document before analyzing.") """
 
 # --- Footer ---
 st.markdown("---")
