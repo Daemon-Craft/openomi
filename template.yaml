@@ -1,29 +1,68 @@
-AWSTemplateFormatVersion: '2010-09-09' # CloudFormation template version
-Transform: AWS::Serverless-2016-10-31 # Enables the AWS SAM transform
-Description: A simple AWS SAM templ ate for a Lambda function that returns a JSON response.
-Resources: # AWS resources definitions
-  OpenomiFunction: # Logical name of the Lambda function
-    Type: AWS::Serverless::Function # SAM resource type for a Lambda function
-    Properties: # Lambda function properties
-      Handler: app.lambda_handler # Function entry point (file.function)
-      Runtime: python3.11 # Runtime environment
-      CodeUri: . # Directory containing the source code
-      Description: A simple AWS Lambda function that returns a JSON response. # Function description
-      MemorySize: 128 # Memory size in MB
-      Timeout: 3 # Maximum execution time in seconds
-      Policies: # IAM policies attached to the function
-        - AWSLambdaBasicExecutionRole # Basic execution policy for Lambda (CloudWatch logs)
-        - AWSLambdaInvokeFunction # Policy to allow invoking other Lambda functions
-      Events: # Trigger definitions
-        OpenomiLogic: # Logical name of the event
-          Type: Api # API Gateway trigger
-          Properties: 
-            Path: /openomi # API path
-            Method: get # HTTP method
-Outputs: # CloudFormation stack outputs
-  OpenomiFunctionArn: # Logical name of the output
-    Description: "ARN of OpenomiFunction" # Output description
-    Value: !GetAtt OpenomiFunction.Arn # Output value (Lambda function ARN)
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Openomi (Architecture 2) - Deploys the extraction tool Lambda and its dependencies for the Bedrock Agent.
+
+Parameters:
+  UploadBucketName:
+    Type: String
+    Default: openomi-uploads-dev
+    Description: The S3 bucket where user documents are uploaded.
+
+Resources:
+  # Lambda Layer containing required libraries
+  OpenomiDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: openomi-dependencies-layer
+      ContentUri: .
+      CompatibleRuntimes:
+        - python3.11
+      BuildMethod: pip
+      BuildArchitecture: arm64
+    Metadata:
+      BuildMethod: 'python3.11'
+      BuildArchitecture: 'arm64'
+      Dependencies:
+        - -r
+        - requirements.txt
+  
+  # Lambda Function "Tool" for Bedrock Agent
+  OpenomiExtractionToolFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: openomi_logic.lambda_handler
+      Runtime: python3.11
+      CodeUri: .
+      Description: Bedrock Agent Tool to extract data from S3 files via LandingAI.
+      MemorySize: 512
+      Timeout: 90 # LandingAI processing can take time
+      Architectures: [arm64]
+      Layers:
+        - !Ref OpenomiDependenciesLayer
+      Environment:
+        Variables:
+          S3_UPLOADS_BUCKET: !Ref UploadBucketName
+          # LANDINGAI_API_KEY must be set in Lambda console
+          # (or via AWS Secrets Manager for production)
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3ReadPolicy:
+            BucketName: !Ref UploadBucketName
+  
+  # Permission for Bedrock Agent to invoke Lambda
+  BedrockAgentPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt OpenomiExtractionToolFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: bedrock.amazonaws.com
+      # Replace with your Agent ARN (or use wildcard for hackathon)
+      SourceArn: !Sub "arn:aws:bedrock:us-east-1:136905788522:agent/C5VID8OPVZ"
+
+Outputs:
+  ExtractionToolLambdaArn:
+    Description: "ARN of the Extraction Tool Lambda to link to the Bedrock Agent"
+    Value: !GetAtt OpenomiExtractionToolFunction.Arn
   ApiUrl: # Logical name of the output
     Description: "API Gateway endpoint URL" # Output description
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/openomi" # Output value (API endpoint URL)
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/extract_document" # Output value (API endpoint URL)

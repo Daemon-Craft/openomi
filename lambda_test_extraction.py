@@ -194,15 +194,15 @@ def run_extraction_on_file(file_bytes: bytes):
 
 def run_bedrock_reasoning(dossier_data: list[dict]) -> str:
     """
-    Invoque l'Agent Bedrock avec la liste complète des JSON extraits.
-    Retourne le rapport en Markdown.
+    invokes an Amazon Bedrock Agent to perform reasoning on the provided dossier data.
+    The dossier_data is expected to be a list of dictionaries, each representing extracted data from documents
     """
     try:
         AGENT_ID = os.environ['BEDROCK_AGENT_ID']
         AGENT_ALIAS_ID = os.environ['BEDROCK_AGENT_ALIAS_ID']
         SESSION_ID = str(uuid.uuid4())
         
-        # Convertit la liste complète des données du dossier en une chaîne
+        # Convert dossier data to JSON string
         input_text = json.dumps(dossier_data)
         
         print(f"Invoking Bedrock Agent (Session: {SESSION_ID}) with {len(dossier_data)} documents...")
