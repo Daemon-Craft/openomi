@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Openomi (Architecture 2) - Deploys the extraction tool Lambda and its dependencies for the Bedrock Agent.
+
+Parameters:
+  UploadBucketName:
+    Type: String
+    Default: openomi-uploads-dev
+    Description: The S3 bucket where user documents are uploaded.
+
+Resources:
+  # Lambda Layer containing required libraries
+  OpenomiDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: openomi-dependencies-layer
+      ContentUri: .
+      CompatibleRuntimes:
+        - python3.11
+      BuildMethod: pip
+      BuildArchitecture: arm64
+    Metadata:
+      BuildMethod: 'python3.11'
+      BuildArchitecture: 'arm64'
+      Dependencies:
+        - -r
+        - requirements.txt
+  
+  # Lambda Function "Tool" for Bedrock Agent
+  OpenomiExtractionToolFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: openomi_logic.lambda_handler
+      Runtime: python3.11
+      CodeUri: .
+      Description: Bedrock Agent Tool to extract data from S3 files via LandingAI.
+      MemorySize: 512
+      Timeout: 90 # LandingAI processing can take time
+      Architectures: [arm64]
+      Layers:
+        - !Ref OpenomiDependenciesLayer
+      Environment:
+        Variables:
+          S3_UPLOADS_BUCKET: !Ref UploadBucketName
+          # LANDINGAI_API_KEY must be set in Lambda console
+          # (or via AWS Secrets Manager for production)
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3ReadPolicy:
+            BucketName: !Ref UploadBucketName
+  
+  # Permission for Bedrock Agent to invoke Lambda
+  BedrockAgentPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt OpenomiExtractionToolFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: bedrock.amazonaws.com
+      # Replace with your Agent ARN (or use wildcard for hackathon)
+      SourceArn: !Sub "arn:aws:bedrock:us-east-1:136905788522:agent/C5VID8OPVZ"
+
+Outputs:
+  ExtractionToolLambdaArn:
+    Description: "ARN of the Extraction Tool Lambda to link to the Bedrock Agent"
+    Value: !GetAtt OpenomiExtractionToolFunction.Arn
+  ApiUrl: # Logical name of the output
+    Description: "API Gateway endpoint URL" # Output description
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/extract_document" # Output value (API endpoint URL)

@@ -1,0 +1,81 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Openomi Extraction Tool",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/extract_document": {
+      "post": {
+        "summary": "Extracts structured data from a single document stored in S3.",
+        "description": "Call this tool once for each file key (e.g., 'uploads/doc1.pdf') to get its JSON content. The agent must then analyze this JSON.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_key": {
+                    "type": "string",
+                    "description": "The S3 key (path) of the file to process. e.g., 'doc-uuid-1.pdf'"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the extracted JSON data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankStatementSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BankStatementSchema": {
+        "type": "object",
+        "properties": {
+          "account_holder": {
+            "type": "string"
+          },
+          "open_balance": {
+            "type": "number"
+          },
+          "ending_balance": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
