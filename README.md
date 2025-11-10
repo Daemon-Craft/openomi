@@ -1,6 +1,6 @@
 # Openomi
 
-AI-powered immigration financial fraud detection system that automates compliance audits for Canadian immigration applications, reducing processing time from 2-4 hours to under 60 seconds.
+AI-powered immigration financial fraud detection system that automates compliance audits for Canadian immigration applications, reducing processing time from hours, days or months to few minutes.
 
 ## Problem Statement
 

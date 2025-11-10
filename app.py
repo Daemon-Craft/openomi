@@ -6,6 +6,7 @@ import boto3
 from dotenv import load_dotenv
 from datetime import datetime
 import time
+from botocore.config import Config
 
 # Page Configuration
 st.set_page_config(
@@ -97,9 +98,15 @@ BEDROCK_AGENT_ID = os.getenv('BEDROCK_AGENT_ID')
 BEDROCK_AGENT_ALIAS_ID = os.getenv('BEDROCK_AGENT_ALIAS_ID')
 AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
 
+boto_config = Config(
+    read_timeout=600, # wait 10 minutes for read
+    connect_timeout=60,    # 60s for connection
+    retries={'max_attempts': 3}  # 3 tries
+)
+
 # Initialize AWS clients
-s3_client = boto3.client('s3', region_name=AWS_DEFAULT_REGION)
-bedrock_agent_client = boto3.client('bedrock-agent-runtime', region_name=AWS_DEFAULT_REGION)
+s3_client = boto3.client('s3', region_name=AWS_DEFAULT_REGION, config=boto_config)
+bedrock_agent_client = boto3.client('bedrock-agent-runtime', region_name=AWS_DEFAULT_REGION, config=boto_config)
 # Session state
 if 'processing_time' not in st.session_state:
     st.session_state.processing_time = None

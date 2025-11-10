@@ -34,8 +34,8 @@ Resources:
       Runtime: python3.11
       CodeUri: ./src
       Description: Bedrock Agent Tool to extract data from S3 files via LandingAI.
-      MemorySize: 1024
-      Timeout: 120
+      MemorySize: 2048
+      Timeout: 600
       Architectures: [x86_64]
       Layers:
         - !Ref OpenomiDependenciesLayer
