@@ -1,0 +1,1 @@
+landingai-ade==0.20.3

@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Openomi - Deploys the extraction tool Lambda and its dependencies for the Bedrock Agent.
+
+Parameters:
+  UploadBucketName:
+    Type: String
+    Default: openomi-uploads-dev
+    Description: The S3 bucket where user documents are uploaded.
+
+  LandingAIApiKey:
+    Type: String
+    NoEcho: true
+    Description: LandingAI API Key for document extraction
+
+Resources:
+  # Lambda Layer with minimal dependencies
+  OpenomiDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: openomi-dependencies-layer
+      ContentUri: ./layer
+      CompatibleRuntimes:
+        - python3.11
+      CompatibleArchitectures:
+        - x86_64
+    Metadata:
+      BuildMethod: python3.11
+
+  OpenomiExtractionToolFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: openomi_logic.lambda_handler
+      Runtime: python3.11
+      CodeUri: ./src
+      Description: Bedrock Agent Tool to extract data from S3 files via LandingAI.
+      MemorySize: 1024
+      Timeout: 120
+      Architectures: [x86_64]
+      Layers:
+        - !Ref OpenomiDependenciesLayer
+      Environment:
+        Variables:
+          S3_UPLOADS_BUCKET: !Ref UploadBucketName
+          VISION_AGENT_API_KEY: !Ref LandingAIApiKey
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3ReadPolicy:
+            BucketName: !Ref UploadBucketName
+  
+  # Permission for Bedrock Agent to invoke Lambda
+  BedrockAgentPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt OpenomiExtractionToolFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: bedrock.amazonaws.com
+      SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/NKQNAB50FC"
+
+Outputs:
+  ExtractionToolLambdaArn:
+    Description: "ARN of the Extraction Tool Lambda"
+    Value: !GetAtt OpenomiExtractionToolFunction.Arn
