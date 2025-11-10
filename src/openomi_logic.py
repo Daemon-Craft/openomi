@@ -3,6 +3,7 @@ import os
 import tempfile
 import boto3
 from pathlib import Path
+import traceback
 
 try:
     from landingai_ade import LandingAIADE
@@ -73,6 +74,7 @@ def run_extraction_from_s3(file_key: str) -> dict:
 def lambda_handler(event, context):
     """
     Main handler for Bedrock Agent.
+    Supports both requestBody format (new) and parameters format (old).
     """
     action_group = event.get('actionGroup', '')
     api_path = event.get('apiPath', '')
@@ -82,21 +84,40 @@ def lambda_handler(event, context):
     response_body = {}
     
     if api_path == '/extract_document':
+        file_key = None
+        # Support both requestBody and parameters formats
         try:
-            # Agent sends parameters
-            parameters = event.get('parameters', [])
-            file_key_param = next((p for p in parameters if p['name'] == 'file_key'), None)
+            # Agent sends parameters via requestBody (preferred)
+            request_body = event.get('requestBody', {})
+            if request_body:
+                content = request_body.get('content', {})
+                properties = content.get('application/json', [])
+                file_key_param = next((p for p in properties if p.get('name') == 'file_key'), None)
+                if file_key_param:
+                    file_key = file_key_param.get('value')
+                    print(f"Found file_key in requestBody: {file_key}")
             
-            if file_key_param:
-                file_key = file_key_param['value']
+            # Method 2: Check parameters[] (fallback for direct invocation)
+            if not file_key:
+                parameters = event.get('parameters', [])
+                file_key_param = next((p for p in parameters if p.get('name') == 'file_key'), None)
+                if file_key_param:
+                    file_key = file_key_param.get('value')
+                    print(f"Found file_key in parameters: {file_key}")
+            
+            if file_key:
                 print(f"Starting extraction for file_key: {file_key}")
                 extraction_result = run_extraction_from_s3(file_key)
                 response_body = extraction_result
             else:
-                response_body = {"error": "Missing 'file_key' parameter."}
+                response_body = {
+                    "error": "Missing 'file_key' parameter in both requestBody and parameters."
+                }
                 
         except Exception as e:
             print(f"Error during extraction: {e}")
+            response_body = {"error": str(e)}
+            traceback.print_exc()
             response_body = {"error": str(e)}
     else:
         response_body = {"error": f"Unknown apiPath: {api_path}"}
