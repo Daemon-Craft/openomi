@@ -1,3 +1,1 @@
-# Minimal dependencies for Lambda
 landingai-ade==0.20.3
-# boto3 is already provided by Lambda runtime - no need to include it
