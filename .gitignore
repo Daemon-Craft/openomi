@@ -1,1 +1,27 @@
+# Environment variables
 .env
+.env.json
+env.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# AWS SAM
+.aws-sam/
+.aws
+
+# Virtual environments
+act/
+.act/
+venv/
+.venv/
+e--container/
+
+# IDE
+.vscode/
+.idea/
+
+layer/

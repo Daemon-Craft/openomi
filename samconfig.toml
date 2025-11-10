@@ -1,0 +1,13 @@
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "openomi-dev"
+resolve_s3 = true
+s3_prefix = "openomi-dev"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "UploadBucketName=\"openomi-uploads-dev\""
+image_repositories = []
+
+[dev.global.parameters]
+region = "us-east-1"

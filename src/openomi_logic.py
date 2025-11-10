@@ -73,35 +73,95 @@ def run_extraction_from_s3(file_key: str) -> dict:
 def lambda_handler(event, context):
     """
     Main handler for Bedrock Agent.
+    Supports both requestBody and parameters formats with extensive logging.
     """
+    # ===== LOG EVERYTHING FOR DEBUGGING =====
+    print(f"===== FULL EVENT RECEIVED =====")
+    print(json.dumps(event, indent=2, default=str))
+    print(f"===== END OF EVENT =====")
+    
     action_group = event.get('actionGroup', '')
     api_path = event.get('apiPath', '')
     
-    print(f"Received event for action group: {action_group}, apiPath: {api_path}")
+    print(f"Action Group: {action_group}, API Path: {api_path}")
 
     response_body = {}
     
     if api_path == '/extract_document':
+        file_key = None
+        
         try:
-            # Agent sends parameters
-            parameters = event.get('parameters', [])
-            file_key_param = next((p for p in parameters if p['name'] == 'file_key'), None)
+            # ===== requestBody (Bedrock Agent with OpenAPI) =====
+            request_body = event.get('requestBody')
+            print(f"requestBody type: {type(request_body)}")
+            print(f"requestBody content: {request_body}")
             
-            if file_key_param:
-                file_key = file_key_param['value']
-                print(f"Starting extraction for file_key: {file_key}")
+            if request_body:
+                content = request_body.get('content', {})
+                print(f"content type: {type(content)}")
+                print(f"content: {content}")
+                
+                app_json = content.get('application/json', {})
+                print(f"application/json type: {type(app_json)}")
+                print(f"application/json: {app_json}")
+                
+                # Iterate safely
+                if isinstance(app_json, dict):
+                    properties = app_json.get('properties', [])
+                    print(f"properties type: {type(properties)}")
+                    print(f"properties: {properties}")
+                    
+                    if isinstance(properties, list):
+                        for item in properties:
+                            print(f"item: {item}")
+                            if isinstance(item, dict) and item.get('name') == 'file_key':
+                                file_key = item.get('value')
+                                print(f"Found file_key in requestBody: {file_key}")
+                                break
+                # FIX: Also handle if it's directly a list (backward compatibility)
+                elif isinstance(app_json, list):
+                    for item in app_json:
+                        if isinstance(item, dict) and item.get('name') == 'file_key':
+                            file_key = item.get('value')
+                            print(f"Found file_key in requestBody (list): {file_key}")
+                            break
+            
+            # ===== parameters[] (fallback) =====
+            if file_key is not None:
+                parameters = event.get('parameters', [])
+                print(f"parameters: {parameters}")
+                
+                if isinstance(parameters, list):
+                    for param in parameters:
+                        if isinstance(param, dict):
+                            if param.get('name') == 'file_key':
+                                file_key = param.get('value')
+                                print(f"Found file_key in parameters: {file_key}")
+                                break
+            
+            # ===== EXECUTE EXTRACTION =====
+            if file_key:
+                print(f"Starting extraction for: {file_key}")
                 extraction_result = run_extraction_from_s3(file_key)
                 response_body = extraction_result
             else:
-                response_body = {"error": "Missing 'file_key' parameter."}
+                print(f"file_key not found in event")
+                response_body = {
+                    "error": "Missing 'file_key' parameter. Check Lambda logs for event structure."
+                }
                 
         except Exception as e:
-            print(f"Error during extraction: {e}")
-            response_body = {"error": str(e)}
+            print(f"EXCEPTION in lambda_handler: {e}")
+            import traceback
+            traceback.print_exc()
+            response_body = {
+                "error": f"Exception: {str(e)}",
+                "type": type(e).__name__
+            }
     else:
         response_body = {"error": f"Unknown apiPath: {api_path}"}
 
-    # Response format expected by Bedrock Agent
+    # Build response
     api_response = {
         'messageVersion': '1.0',
         'response': {
@@ -117,5 +177,8 @@ def lambda_handler(event, context):
         }
     }
     
-    print(f"Returning response to Agent: {json.dumps(api_response)}")
+    print(f"===== RESPONSE TO AGENT =====")
+    print(json.dumps(api_response, indent=2))
+    print(f"===== END OF RESPONSE =====")
+    
     return api_response

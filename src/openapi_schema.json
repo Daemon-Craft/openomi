@@ -1,0 +1,63 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Document Extraction API",
+    "version": "1.0.0",
+    "description": "Extract structured data from documents in S3"
+  },
+  "paths": {
+    "/extract_document": {
+      "post": {
+        "summary": "Extract data from a document",
+        "description": "Extracts structured information from bank statements",
+        "operationId": "extractDocument",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_key": {
+                    "type": "string",
+                    "description": "S3 key of the file (e.g., 'bank-statement.pdf')"
+                  }
+                },
+                "required": ["file_key"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully extracted data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "account_holder": {"type": "string"},
+                    "open_balance": {"type": "number"},
+                    "ending_balance": {"type": "number"},
+                    "currency": {"type": "string"},
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {"type": "string"},
+                          "description": {"type": "string"},
+                          "amount": {"type": "number"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
