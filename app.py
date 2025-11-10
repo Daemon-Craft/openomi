@@ -95,12 +95,11 @@ load_dotenv()
 BUCKET_NAME = os.getenv('S3_UPLOADS_BUCKET', 'openomi-uploads-dev')
 BEDROCK_AGENT_ID = os.getenv('BEDROCK_AGENT_ID')
 BEDROCK_AGENT_ALIAS_ID = os.getenv('BEDROCK_AGENT_ALIAS_ID')
-AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
 
 # Initialize AWS clients
-s3_client = boto3.client('s3')
-bedrock_agent_client = boto3.client('bedrock-agent-runtime')
-
+s3_client = boto3.client('s3', region_name=AWS_DEFAULT_REGION)
+bedrock_agent_client = boto3.client('bedrock-agent-runtime', region_name=AWS_DEFAULT_REGION)
 # Session state
 if 'processing_time' not in st.session_state:
     st.session_state.processing_time = None
@@ -262,44 +261,6 @@ with col2:
         help="Total number of people in your family (including yourself)"
     )
 
-# Show program-specific requirements
-with st.expander(f"Requirements for {programs[selected_program]}", expanded=False):
-    if selected_program == "FSW-EE":
-        st.markdown(f"""
-        **Federal Skilled Worker - Express Entry**
-        
-        **Minimum Funds Required:**
-        - Family of {family_size}: **${13757 if family_size == 1 else 17127 if family_size == 2 else 21055 if family_size == 3 else 25564} CAD**
-        
-        **Documents Needed:**
-        - 6 months of consecutive bank statements
-        - Official bank letter on letterhead
-        - All pages must be present
-        
-        **Red Flags to Avoid:**
-        - Large deposits in last 60 days
-        - Borrowed funds
-        - Incomplete statement history
-        """)
-    
-    elif selected_program == "CEC-EE":
-        st.info("Canadian Experience Class does NOT require proof of funds (you're already working in Canada)")
-    
-    elif selected_program == "QSW-ARRIMA":
-        st.markdown(f"""
-        **Quebec Skilled Worker (Arrima)**
-        
-        **Minimum Funds Required:**
-        - Family of {family_size}: **${3462 if family_size == 1 else 5120 if family_size == 2 else 6300} CAD**
-        
-        **Documents Needed:**
-        - 3 months of bank statements (not 6)
-        - Documents in French or certified translation
-        - Notarized bank attestation
-        
-        **Note:** Quebec requirements are different and lower than federal programs
-        """)
-    
 
 st.markdown("---")
 
