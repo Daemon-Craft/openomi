@@ -1,6 +1,6 @@
 # Openomi
 
-AI-powered immigration financial fraud detection system that automates compliance audits for Canadian immigration applications, reducing processing time from hours, days or months to few minutes.
+AI-powered financial fraud detection system that automates compliance audits for every Government process application in general and for Canadian immigration applications in particular ( this MVP ), reducing processing time from hours, days or months to few minutes.
 
 ## Problem Statement
 
@@ -14,7 +14,23 @@ Immigration agencies like IRCC process over 400,000 applications annually, requi
 
 ## Architecture
 
-The system uses a multi-agent AI architecture:
+The system uses an Agent AI architecture:
+
+![System Architecture](architecture%20diagram.png)
+
+### System Context
+
+The following diagram shows the high-level interactions between users, the Openomi system, and external services:
+
+![Context Diagram](context_openomi.png)
+
+### Use Cases
+
+The system supports multiple immigration program audits with program-specific compliance rules:
+
+![Use Case Diagram](usecase_openomi.png)
+
+### Architecture Flow
 
 ```
 Streamlit UI → S3 Storage → AWS Bedrock Agent → Lambda Function (LandingAI ADE)

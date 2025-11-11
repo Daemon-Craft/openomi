@@ -10,7 +10,7 @@ from botocore.config import Config
 
 # Page Configuration
 st.set_page_config(
-    page_title="Openomi - Immigration Financial Fraud Detection",
+    page_title="Openomi - AI-Powered Financial Fraud Detection (Immigration case)",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -151,7 +151,7 @@ Extract data from each file, analyze for fraud indicators, verify IRCC complianc
 
 # Header
 st.markdown('<div class="main-header">OPENOMI</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">AI-Powered Immigration Financial Fraud Detection</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">AI-Powered Financial Fraud Detection (Immigration case)</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
