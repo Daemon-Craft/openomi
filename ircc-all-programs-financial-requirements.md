@@ -457,14 +457,14 @@
 
 | Program | Proof of Funds? | Minimum (Single) | Months of Statements | Special Notes |
 |---------|----------------|------------------|---------------------|---------------|
-| FSW (Express Entry) | ✅ Yes | $13,757 | 6 months | Strict enforcement |
+| FSW (Express Entry) | ✅ Yes | $15,263 | 6 months | Strict enforcement |
 | CEC (Express Entry) | ❌ No | N/A | N/A | Already in Canada |
-| FST (Express Entry) | ⚠️ Conditional | $13,757 | 6 months | Not needed if job offer |
-| PNP (Ontario) | ✅ Yes | $13,757 | 3 months | Shorter history |
+| FST (Express Entry) | ⚠️ Conditional | $15,263 | 6 months | Not needed if job offer |
+| PNP (Ontario) | ✅ Yes | $15,263 | 3 months | Shorter history |
 | PNP (BC) | ✅ Yes | ~$10,000 | 3 months | Lower amount |
 | Quebec (Arrima) | ✅ Yes | $3,462 | 3 months | Much lower! |
 | Family Sponsorship | ❌ No | N/A | N/A | Sponsor has income requirement |
-| Start-Up Visa | ✅ Yes | $13,757 | 6 months | Plus investment commitment |
+| Start-Up Visa | ✅ Yes | $15,263 | 6 months | Plus investment commitment |
 | Self-Employed | ⚠️ Flexible | ~$100K net worth | 24 months | Show business capacity |
 
 ---
