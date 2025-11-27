@@ -251,7 +251,7 @@ if st.session_state.authenticated:
     <div style='text-align: center; color: gray; padding: 20px;'>
         <p><strong>Openomi - Built for LandingAI Financial Hackathon 2024</strong></p>
         <p>Powered by AWS Bedrock (Claude 3.5 Sonnet) + LandingAI Agentic Document Extraction (ADE)</p>
-        <p><em>Transforming immigration financial audits from hours to seconds</em></p>
+        <p><em>Transforming immigration financial audits from hours to seconds with no compromise on accuracy</em></p>
         <p style='font-size: 0.8rem; margin-top: 10px;'>This is a prototype for demonstration purposes. Not for production use.</p>
     </div>
     """, unsafe_allow_html=True)
